@@ -1,0 +1,8 @@
+{
+  "name": "url-shortener",
+  "type": "module",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.500.0",
+    "@aws-sdk/lib-dynamodb": "^3.500.0"
+  }
+}
