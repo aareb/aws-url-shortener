@@ -1,6 +1,6 @@
-resource "aws_wafv2_web_acl" "api_waf" {
+resource "aws_wafv2_web_acl" "url_shortener_waf" {
   name        = "${var.environment}-url-shortener-waf"
-  description = "WAF for URL shortener API"
+  description = "Protects URL shortener from abusive traffic"
   scope       = "REGIONAL"
 
   default_action {
@@ -8,7 +8,7 @@ resource "aws_wafv2_web_acl" "api_waf" {
   }
 
   rule {
-    name     = "RateLimitRule"
+    name     = "RateLimitPerIP"
     priority = 1
 
     action {
@@ -24,7 +24,7 @@ resource "aws_wafv2_web_acl" "api_waf" {
 
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "RateLimit"
+      metric_name                = "RateLimitPerIP"
       sampled_requests_enabled   = true
     }
   }
@@ -33,5 +33,10 @@ resource "aws_wafv2_web_acl" "api_waf" {
     cloudwatch_metrics_enabled = true
     metric_name                = "UrlShortenerWAF"
     sampled_requests_enabled   = true
+  }
+
+  tags = {
+    Service     = "url-shortener"
+    Environment = var.environment
   }
 }

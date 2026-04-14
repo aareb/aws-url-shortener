@@ -32,6 +32,23 @@ resource "aws_apigatewayv2_route" "shorten" {
   authorizer_id      = aws_apigatewayv2_authorizer.jwt.id
   target             = "integrations/${aws_apigatewayv2_integration.lambda.id}"
 }
+
+resource "aws_wafv2_web_acl_association" "api_waf_assoc" {
+  resource_arn = aws_api_gateway_stage.main.arn
+  web_acl_arn  = aws_wafv2_web_acl.api_waf.arn
+}
+
+resource "aws_api_gateway_method_settings" "throttling" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  stage_name  = aws_api_gateway_stage.main.stage_name
+  method_path = "*/*"
+
+  settings {
+    throttling_rate_limit  = 100
+    throttling_burst_limit = 200
+  }
+}
+
 resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
   alarm_name          = "${var.environment}-url-shortener-lambda-errors"
   comparison_operator = "GreaterThanOrEqualToThreshold"
