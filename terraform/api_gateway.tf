@@ -33,6 +33,7 @@ resource "aws_apigatewayv2_route" "shorten" {
   target             = "integrations/${aws_apigatewayv2_integration.lambda.id}"
 }
 
+## WAF association
 resource "aws_wafv2_web_acl_association" "api_waf_assoc" {
   resource_arn = aws_api_gateway_stage.main.arn
   web_acl_arn  = aws_wafv2_web_acl.api_waf.arn
@@ -48,6 +49,8 @@ resource "aws_api_gateway_method_settings" "throttling" {
     throttling_burst_limit = 200
   }
 }
+
+## lamda error alarm
 
 resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
   alarm_name          = "${var.environment}-url-shortener-lambda-errors"
@@ -65,6 +68,8 @@ resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
 
   alarm_description = "Alert when Lambda function errors occur"
 }
+
+## API Gateway 5XX alarm 
 resource "aws_cloudwatch_metric_alarm" "api_5xx" {
   alarm_name          = "${var.project_name}-${var.environment}-api-5xx"
   comparison_operator = "GreaterThanThreshold"

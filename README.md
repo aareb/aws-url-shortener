@@ -114,7 +114,6 @@ The following secrets are configured at the repository level:
 - `AWS_ACCESS_KEY_ID` – AWS access key for Terraform deployments
 - `AWS_SECRET_ACCESS_KEY` – AWS secret key
 - `AWS_REGION` – Target AWS region
-- `JWT_SECRET` – Secret key used for signing and validating JWT tokens
 
 These secrets are referenced directly in the GitHub Actions workflow and made available as environment variables during CI/CD execution.
 ``
