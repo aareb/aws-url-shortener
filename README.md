@@ -7,6 +7,40 @@ A production-ready URL shortener built using:
 - Terraform
 - GitHub Actions (CI/CD)
 
+ ┌──────────────┐
+                        │   End Users  │
+                        └──────┬───────┘
+                               │
+                               ▼
+                     ┌──────────────────┐
+                     │   API Gateway    │
+                     │  (Public REST)   │
+                     └──────┬─────┬─────┘
+                            │     │
+           GET /{code} (public)    │   POST /shorten (JWT)
+                            │     │
+                            ▼     ▼
+                   ┌────────────┐  ┌────────────┐
+                   │ Redirect   │  │  Shorten   │
+                   │  Lambda    │  │  Lambda    │
+                   │ (Node.js)  │  │ (Node.js)  │
+                   └─────┬──────┘  └─────┬──────┘
+                         │               │
+                         └───────┬───────┘
+                                 ▼
+                         ┌────────────────┐
+                         │   DynamoDB     │
+                         │ URL Mappings  │
+                         └────────────────┘
+
+        ┌───────────────────────────────────────────┐
+        │ AWS WAF (Rate Limiting, Abuse Protection) │
+        └───────────────────────────────────────────┘
+
+        ┌───────────────────────────────────────────┐
+        │ CloudWatch (Logs, Metrics, Alarms)         │
+        └───────────────────────────────────────────┘
+
 ## Architecture Overview
 
 The URL shortener is implemented using a serverless architecture on AWS:
@@ -45,6 +79,13 @@ The URL shortener is implemented using a serverless architecture on AWS:
 - AWS WAF mitigates abusive and malicious traffic
 - Least-privilege IAM policies applied to Lambda
 
+## Security & Traffic Protection
+
+- URL creation endpoint is protected using JWT authentication.
+- Public redirection endpoint is rate-limited using AWS WAF to prevent abuse.
+- CloudWatch alarms monitor Lambda errors and API Gateway 5XX responses.
+- IAM roles follow least-privilege principles.
+
 ## Endpoints
 
 POST /shorten  
@@ -61,11 +102,23 @@ GET /{code}
 - WAF metrics enabled for traffic analysis
 ``
 
-## Set Environment Variables (Quick testing)
 
-$env:AWS_ACCESS_KEY_ID = "your-access-key-id"
-$env:AWS_SECRET_ACCESS_KEY = "your-secret-access-key"  
-$env:AWS_DEFAULT_REGION = "us-east-1"  # or your preferred region
+## Secrets Management
+
+Sensitive values are **not stored in the repository** and are injected securely using **GitHub Secrets**.
+
+### GitHub Secrets Used
+
+The following secrets are configured at the repository level:
+
+- `AWS_ACCESS_KEY_ID` – AWS access key for Terraform deployments
+- `AWS_SECRET_ACCESS_KEY` – AWS secret key
+- `AWS_REGION` – Target AWS region
+- `JWT_SECRET` – Secret key used for signing and validating JWT tokens
+
+These secrets are referenced directly in the GitHub Actions workflow and made available as environment variables during CI/CD execution.
+``
+
 
 ## Deploy
 

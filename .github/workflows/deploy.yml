@@ -17,15 +17,31 @@ jobs:
         aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ap-south-1
-
+    
+    # -------- BUILD LAMBDA --------    
     - name: Build Lambda
       run: |
         cd lambda
         npm install
         zip -r ../terraform/lambda.zip .
+   
+    # -------- LINT --------
+    - name: Terraform Format Check
+      run: terraform fmt -check -recursive
+      working-directory: terraform
 
+      # -------- INIT --------
+    - name: Terraform Init
+      run: terraform init
+      working-directory: terraform
+
+      # -------- PLAN --------
+    - name: Terraform Plan
+      run: terraform plan -var-file=env/dev.tfvars
+      working-directory: terraform
+
+      # -------- APPLY --------
     - name: Terraform Apply
-      run: |
-        cd terraform
-        terraform init
-        terraform apply -auto-approve -var-file=env/dev.tfvars
+      if: github.ref == 'refs/heads/main'
+      run: terraform apply -auto-approve -var-file=env/prod.tfvars
+      working-directory: terraform
