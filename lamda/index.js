@@ -60,4 +60,14 @@ export const handler = async (event) => {
     statusCode: 302,
     headers: { Location: data.Item.originalUrl }
   };
+
+  const body = JSON.parse(event.body || '{}');
+const originalUrl = body.url;
+
+if (!originalUrl || !isValidUrl(originalUrl)) {
+  return {
+    statusCode: 400,
+    body: JSON.stringify({ message: 'Invalid or unsafe URL' })
+  };
+};
 };

@@ -11,6 +11,10 @@ resource "aws_dynamodb_table" "urls" {
     name = "code"
     type = "S"
   }
+  ttl {
+  attribute_name = "expiresAt"
+  enabled        = true
+}
 }
 
 resource "aws_lambda_function" "shortener" {
@@ -22,6 +26,8 @@ resource "aws_lambda_function" "shortener" {
   source_code_hash = filebase64sha256("lambda.zip")
   role             = aws_iam_role.lambda_role.arn
 
+  reserved_concurrent_executions = 50
+  
   environment {
     variables = {
       TABLE_NAME = aws_dynamodb_table.urls.name

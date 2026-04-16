@@ -65,19 +65,20 @@ resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
 
   alarm_description = "Alert when Lambda function errors occur"
 }
-resource "aws_cloudwatch_metric_alarm" "api_gateway_5xx" {
-  alarm_name          = "${var.environment}-api-gateway-5xx"
+resource "aws_cloudwatch_metric_alarm" "api_5xx" {
+  alarm_name          = "${var.project_name}-${var.environment}-api-5xx"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
   metric_name         = "5XXError"
   namespace           = "AWS/ApiGateway"
-  period              = 300
+  period              = 60
   statistic           = "Sum"
   threshold           = 5
 
   dimensions = {
-    ApiName = aws_api_gateway_rest_api.main.name
+    ApiName = aws_api_gateway_rest_api.this.name
+    Stage   = var.environment
   }
 
-  alarm_description = "High number of server errors in API Gateway"
+  alarm_description = "API Gateway 5XX errors detected"
 }
