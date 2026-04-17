@@ -485,15 +485,15 @@ git push origin master
 
 ---
 
-## License
+## License (for demo purpose)
 
 MIT License - See LICENSE file
 
-## Support
+## Support (assumption support for demo)
 
-- 📧 Email: support@example.com
-- 📝 Issues: GitHub Issues
-- 💬 Slack: #url-shortener channel
+- Email: support@example.com 
+- Issues: GitHub Issues
+- Slack: #url-shortener channel
 
 
 **Reasoning:**
