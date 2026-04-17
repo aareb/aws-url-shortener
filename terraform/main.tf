@@ -10,7 +10,7 @@ module "waf" {
 }
 
 resource "aws_dynamodb_table" "urls" {
-  table_name   = "${var.env}-urls"
+  name         = "${var.env}-urls"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "code"
 
@@ -184,52 +184,7 @@ module "api_gateway" {
   cognito_user_pool_client_id = aws_cognito_user_pool_client.client.id
 }
 
-resource "aws_apigatewayv2_stage" "default" {
-  api_id      = aws_apigatewayv2_api.api.id
-  name        = "$default"
-  auto_deploy = true
-
-  access_log_settings {
-    destination_arn = aws_cloudwatch_log_group.lambda_logs.arn
-    format = jsonencode({
-      requestId               = "$context.requestId"
-      sourceIp                = "$context.identity.sourceIp"
-      requestTime             = "$context.requestTime"
-      protocol                = "$context.protocol"
-      httpMethod              = "$context.httpMethod"
-      resourcePath            = "$context.resourcePath"
-      routeKey                = "$context.routeKey"
-      status                  = "$context.status"
-      responseLength          = "$context.responseLength"
-      integrationErrorMessage = "$context.integrationErrorMessage"
-    })
-  }
-}
-
-# WAF Association
-resource "aws_wafv2_web_acl_association" "api_waf_assoc" {
-  resource_arn = aws_apigatewayv2_stage.default.arn
-  web_acl_arn  = module.waf.waf_arn
-}
-
-# CloudWatch Alarms
-resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
-  alarm_name          = "${var.env}-url-shortener-lambda-errors"
-  comparison_operator = "GreaterThanOrEqualToThreshold"
-  evaluation_periods  = 1
-  metric_name         = "Errors"
-  namespace           = "AWS/Lambda"
-  period              = 300
-  statistic           = "Sum"
-  threshold           = 1
-
-  dimensions = {
-    FunctionName = aws_lambda_function.shortener.function_name
-  }
-
-  alarm_description = "Alert when Lambda function errors occur"
-}
-
+# CloudWatch Alarms (defined in monitoring.tf)
 resource "aws_cloudwatch_metric_alarm" "api_5xx" {
   alarm_name          = "${var.env}-url-shortener-api-5xx"
   comparison_operator = "GreaterThanThreshold"
@@ -241,8 +196,8 @@ resource "aws_cloudwatch_metric_alarm" "api_5xx" {
   threshold           = 5
 
   dimensions = {
-    ApiId = aws_apigatewayv2_api.api.id
-    Stage = aws_apigatewayv2_stage.default.name
+    ApiId = module.api_gateway.api_id
+    Stage = module.api_gateway.stage_name
   }
 
   alarm_description = "API Gateway 5XX errors detected"

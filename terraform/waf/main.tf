@@ -123,9 +123,9 @@ resource "aws_wafv2_web_acl" "api_waf" {
     }
   }
 
-  # Rule 5: Geo-blocking (optional - blocks requests from specific countries)
+  # Rule 5: IP Reputation filtering
   rule {
-    name     = "geo-block-rule"
+    name     = "ip-reputation-rule"
     priority = 4
 
     action {
@@ -133,14 +133,15 @@ resource "aws_wafv2_web_acl" "api_waf" {
     }
 
     statement {
-      geo_match_statement {
-        country_codes = [] # Add country codes if needed, e.g., ["CN", "RU"]
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesAmazonIpReputationList"
+        vendor_name = "AWS"
       }
     }
 
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "geo-block-rule"
+      metric_name                = "ip-reputation-rule"
       sampled_requests_enabled   = true
     }
   }

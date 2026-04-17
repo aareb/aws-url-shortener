@@ -42,8 +42,6 @@ resource "aws_apigatewayv2_integration" "lambda" {
   integration_method = "POST"
   integration_uri    = var.lambda_invoke_arn
   payload_format_version = "2.0"
-
-  timeout_in_millis = 30000
 }
 
 # POST /shorten - Create short URL (requires authentication)
@@ -73,15 +71,9 @@ resource "aws_apigatewayv2_route" "cors_options" {
 }
 
 resource "aws_apigatewayv2_stage" "default" {
-  api_id            = aws_apigatewayv2_api.api.id
-  name              = "$default"
-  auto_deploy       = true
-  default_route_settings {
-    throttle_settings {
-      burst_limit = 5000
-      rate_limit  = 2000
-    }
-  }
+  api_id      = aws_apigatewayv2_api.api.id
+  name        = "$default"
+  auto_deploy = true
 
   access_log_settings {
     destination_arn = var.log_bucket_arn
@@ -146,16 +138,4 @@ resource "aws_cloudwatch_metric_alarm" "api_latency" {
     ApiName = aws_apigatewayv2_api.api.name
     Stage   = aws_apigatewayv2_stage.default.name
   }
-}
-  namespace           = "AWS/ApiGateway"
-  period              = 60
-  statistic           = "Sum"
-  threshold           = 5
-
-  dimensions = {
-    ApiId = aws_apigatewayv2_api.api.id
-    Stage = aws_apigatewayv2_stage.default.name
-  }
-
-  alarm_description = "API Gateway 5XX errors detected"
 }
