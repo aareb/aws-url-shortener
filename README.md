@@ -38,37 +38,37 @@ A production-ready, serverless URL shortener built on AWS with Terraform infrast
 
 ## Key Features
 
-✅ **Production-Grade Security**
+**Production-Grade Security**
 - JWT-based authentication via AWS Cognito
 - AWS WAF with rate limiting, SQL injection, XSS protection
 - SSRF prevention with internal IP blocking
 - HTTPS only communication
 
-✅ **Scalability**
+**Scalability**
 - Serverless architecture (AWS Lambda + DynamoDB)
 - Auto-scaling Lambda concurrency
 - DynamoDB on-demand billing
 - Horizontal scaling with no operational overhead
 
-✅ **High Availability**
+**High Availability**
 - Multi-AZ DynamoDB
 - Point-in-time recovery enabled
 - CloudWatch alarms and dashboards
 - Structured logging for debugging
 
-✅ **Infrastructure as Code**
+**Infrastructure as Code**
 - 100% Terraform-managed infrastructure
 - Multi-environment support (dev/prod)
 - Modular architecture (API Gateway, WAF, Cognito)
 - Version-controlled configuration
 
-✅ **CI/CD Pipeline**
+**CI/CD Pipeline**
 - GitHub Actions automated deployment
 - Terraform plan review before apply
 - Lambda package validation and audit
 - Environment-based deployment
 
-✅ **Monitoring & Observability**
+**Monitoring & Observability**
 - CloudWatch dashboards
 - Custom metric alarms
 - Structured JSON logging
