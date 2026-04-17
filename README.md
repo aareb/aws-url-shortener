@@ -30,16 +30,24 @@ API Gateway (Public REST)
 
 ## Architecture Overview
 
-The URL shortener is implemented using a serverless architecture on AWS:
+## Architecture Overview
 
-- **API Gateway** – Public REST endpoints
-- **AWS Lambda (Node.js)** – Business logic
-- **DynamoDB** – Persistent storage for URL mappings
-- **AWS WAF** – Protection against abusive and malicious traffic
-- **CloudWatch** – Logging, monitoring, and alarms
-- **Terraform** – Infrastructure as Code
-- **GitHub Actions** – CI/CD pipeline
-``
+This service implements a serverless URL shortener using:
+
+- **Amazon API Gateway** – public HTTP interface
+- **Amazon DynamoDB** – low‑latency key‑value storage
+- **AWS WAF** – edge security and abuse prevention
+
+### High‑level Flow
+
+1. Client sends `GET /{shortCode}`
+2. API Gateway routes the request
+3. DynamoDB is queried for the original URL
+4. API Gateway returns a `301` redirect
+
+This design intentionally avoids compute (Lambda/EC2) to minimize
+latency, operational overhead, and cost for a read‑heavy workload.
+
 ## Requirement Mapping
 
 | Requirement | Implementation |
@@ -58,6 +66,62 @@ The URL shortener is implemented using a serverless architecture on AWS:
 - Multi-environment support (dev/prod)
 - Auto-scaling & monitoring
 - Infrastructure as Code
+
+## Design Decisions & Tradeoffs
+
+### Why API Gateway → DynamoDB (No Lambda)
+
+**Chosen:**
+- API Gateway direct integration with DynamoDB
+
+**Alternatives considered:**
+- Lambda + DynamoDB
+- ECS / EC2 based API
+
+**Reasoning:**
+- URL resolution is a simple key‑value lookup
+- No transformation or business logic required
+- Avoids cold starts and Lambda operational overhead
+- Lower cost and lower latency for high‑volume reads
+
+**Tradeoff:**
+- Harder to introduce complex logic later
+- Reduced flexibility vs compute‑based architecture
+
+---
+
+### Why DynamoDB
+
+**Chosen:**
+- DynamoDB (on‑demand capacity)
+
+**Alternatives considered:**
+- RDS / Aurora
+- ElastiCache
+
+**Reasoning:**
+- Predictable single‑key access pattern
+- Horizontal scalability without operational work
+- Sub‑millisecond latency at global scale
+
+**Tradeoff:**
+- No relational querying
+- Schema evolution requires forethought
+
+---
+
+### Why No Caching (Yet)
+
+Caching (CloudFront / ElastiCache) was intentionally omitted:
+
+- Short URLs often have skewed access patterns
+- DynamoDB handles read scale efficiently
+- Simplicity preferred for initial version
+
+**Future upgrade path:**
+- CloudFront with origin = API Gateway
+- TTL‑based caching for hot links
+
 
 ## Security Considerations
 
