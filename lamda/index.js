@@ -61,6 +61,28 @@ export const handler = async (event) => {
     headers: { Location: data.Item.originalUrl }
   };
 
+function isValidUrl(url) {
+  try {
+    const parsed = new URL(url);
+
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return false;
+    }
+
+    // Prevent internal IP abuse
+    if (
+      parsed.hostname.startsWith("169.254") ||
+      parsed.hostname.startsWith("127.") ||
+      parsed.hostname === "localhost"
+    ) {
+      return false;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
   const body = JSON.parse(event.body || '{}');
 const originalUrl = body.url;
 

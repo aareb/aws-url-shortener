@@ -42,7 +42,23 @@ resource "aws_lambda_permission" "api_gw" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/*"
 }
+environment {
+  variables = {
+    JWT_SECRET = aws_ssm_parameter.jwt_secret.name
+  }
+}
+resource "aws_iam_role_policy" "ssm_access" {
+  role = aws_iam_role.lambda_role.id
 
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = ["ssm:GetParameter"]
+      Resource = aws_ssm_parameter.jwt_secret.arn
+    }]
+  })
+}
 resource "aws_iam_role" "lambda_role" {
   name = "${var.env}-lambda-role"
 

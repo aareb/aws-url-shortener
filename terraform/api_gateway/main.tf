@@ -33,9 +33,30 @@ resource "aws_apigatewayv2_route" "shorten" {
   target             = "integrations/${aws_apigatewayv2_integration.lambda.id}"
 }
 
+resource "aws_api_gateway_usage_plan" "default" {
+  name = "${var.env}-url-shortener-plan"
+
+  throttle_settings {
+    rate_limit  = 10    # requests per second
+    burst_limit = 20
+  }
+}
+
+resource "aws_api_gateway_usage_plan_key" "default" {
+  key_id        = aws_api_gateway_api_key.default.id
+  key_type      = "API_KEY"
+  usage_plan_id = aws_api_gateway_usage_plan.default.id
+}
+
+resource "aws_api_gateway_api_key" "default" {
+  name = "${var.env}-url-shortener-key"
+  enabled = true
+}
+
 ## WAF association
 resource "aws_wafv2_web_acl_association" "api_waf_assoc" {
   resource_arn = aws_api_gateway_stage.main.arn
+  log_destination_configs = [var.log_bucket_arn]
   web_acl_arn  = aws_wafv2_web_acl.api_waf.arn
 }
 

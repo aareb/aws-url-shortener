@@ -1,27 +1,25 @@
-variable "name" {}
-variable "scope" { default = "REGIONAL" }
-variable "api_gateway_arn" {}
-variable "log_bucket_arn" {}
+variable "name" {
+  type = string
+  }
 
-resource "aws_wafv2_web_acl" "this" {
-  name  = var.name
-  scope = var.scope
+variable "scope" { 
+  type = string
+  default = "REGIONAL" }
+
+variable "api_gateway_arn" {}
+variable "log_bucket_arn" {
+  type = string
+}
+
+resource "aws_wafv2_web_acl" "api_waf" {
+  name        = "${var.env}-url-shortener-waf"
+  description = "WAF for URL shortener"
+  scope       = "REGIONAL"
+
 
   default_action {
     allow {}
   }
-
-  visibility_config {
-    cloudwatch_metrics_enabled = true
-    metric_name                = "url-shortener-waf"
-    sampled_requests_enabled   = true
-  }
-}
-resource "aws_wafv2_web_acl" "this" {
-  name  = var.name
-  scope = var.scope
-
-  default_action { allow {} }
 
 # Rate Limiting
   rule {
@@ -34,7 +32,7 @@ resource "aws_wafv2_web_acl" "this" {
 
     statement {
       rate_based_statement {
-        limit              = 1000
+        limit              = 100
         aggregate_key_type = "IP"
       }
     }
@@ -45,7 +43,13 @@ resource "aws_wafv2_web_acl" "this" {
       sampled_requests_enabled   = true
     }
   }
+    visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "url-shortener-waf"
+    sampled_requests_enabled   = true
+  }
 }
+
 #bot control
 rule {
   name     = "aws-bot-control"

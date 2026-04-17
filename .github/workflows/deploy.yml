@@ -27,10 +27,15 @@ jobs:
    
     # -------- LINT --------
     - name: Terraform Format Check
-      run: terraform fmt -check -recursive
-      working-directory: terraform
+    run: terraform fmt -check -recursive
+    working-directory: terraform
 
-      # -------- INIT --------
+   # -------- VALIDATE --------
+    - name: Terraform Validate
+    run: terraform validate
+    working-directory: terraform
+
+   # -------- INIT --------
     - name: Terraform Init
       run: terraform init
       working-directory: terraform
