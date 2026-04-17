@@ -10,7 +10,7 @@ module "waf" {
 }
 
 resource "aws_dynamodb_table" "urls" {
-  name         = "${var.env}-urls"
+  table_name   = "${var.env}-urls"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "code"
 
@@ -18,10 +18,38 @@ resource "aws_dynamodb_table" "urls" {
     name = "code"
     type = "S"
   }
+
+  # Global secondary index for querying URLs by user
+  global_secondary_index {
+    name            = "${var.env}-userId-createdAt-index"
+    hash_key        = "userId"
+    range_key       = "createdAt"
+    projection_type = "ALL"
+  }
+
+  attribute {
+    name = "userId"
+    type = "S"
+  }
+
+  attribute {
+    name = "createdAt"
+    type = "N"
+  }
+
   ttl {
-  attribute_name = "expiresAt"
-  enabled        = true
-}
+    attribute_name = "expiresAt"
+    enabled        = true
+  }
+
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  tags = {
+    Environment = var.env
+    Service     = "url-shortener"
+  }
 }
 
 resource "aws_lambda_function" "shortener" {
@@ -33,13 +61,30 @@ resource "aws_lambda_function" "shortener" {
   source_code_hash = filebase64sha256("lambda.zip")
   role             = aws_iam_role.lambda_role.arn
 
-  reserved_concurrent_executions = 50
+  # Production-grade concurrency settings
+  reserved_concurrent_executions = var.env == "prod" ? 1000 : 100
+  
+  # Timeout for redirect operations
+  timeout = 30
+  memory_size = 256
   
   environment {
     variables = {
       TABLE_NAME = aws_dynamodb_table.urls.name
       BASE_URL   = var.base_url
+      ENVIRONMENT = var.env
     }
+  }
+
+  layers = []
+
+  tracing_config {
+    mode = "Active"
+  }
+
+  tags = {
+    Environment = var.env
+    Service     = "url-shortener"
   }
 }
 
@@ -48,7 +93,7 @@ resource "aws_lambda_permission" "api_gw" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.shortener.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/*"
+  source_arn    = "${module.api_gateway.api_id}/*"
 }
 
 resource "aws_iam_role_policy" "ssm_access" {
@@ -77,54 +122,66 @@ resource "aws_iam_role" "lambda_role" {
 }
 
 resource "aws_iam_role_policy" "lambda_policy" {
+  name = "${var.env}-lambda-policy"
   role = aws_iam_role.lambda_role.id
 
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
       {
+        Sid    = "DynamoDBAccess"
         Action = [
           "dynamodb:GetItem",
-          "dynamodb:PutItem"
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:Query"
+        ],
+        Effect   = "Allow",
+        Resource = [
+          aws_dynamodb_table.urls.arn,
+          "${aws_dynamodb_table.urls.arn}/index/*"
+        ]
+      },
+      {
+        Sid    = "CloudWatchLogs"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ],
+        Effect   = "Allow",
+        Resource = "arn:aws:logs:*:*:*"
+      },
+      {
+        Sid    = "XRayAccess"
+        Action = [
+          "xray:PutTraceSegments",
+          "xray:PutTelemetryRecords"
         ],
         Effect   = "Allow",
         Resource = "*"
       },
       {
-        Action = "logs:*",
-        Effect = "Allow",
-        Resource = "*"
+        Sid    = "SSMParameterAccess"
+        Action = ["ssm:GetParameter"]
+        Effect = "Allow"
+        Resource = "arn:aws:ssm:${var.aws_region}:*:parameter/${var.env}/url-shortener/*"
       }
     ]
   })
 }
 
-# API Gateway Configuration
-resource "aws_apigatewayv2_api" "api" {
-  name          = "${var.env}-url-shortener-api"
-  protocol_type = "HTTP"
-}
+# API Gateway Module
+module "api_gateway" {
+  source = "./api_gateway"
 
-resource "aws_apigatewayv2_integration" "lambda" {
-  api_id           = aws_apigatewayv2_api.api.id
-  integration_type = "AWS_PROXY"
-  connection_type  = "INTERNET"
-  integration_method = "POST"
-  integration_uri  = aws_lambda_function.shortener.invoke_arn
-}
-
-resource "aws_apigatewayv2_route" "redirect" {
-  api_id    = aws_apigatewayv2_api.api.id
-  route_key = "GET /{code}"
-
-  target = "integrations/${aws_apigatewayv2_integration.lambda.id}"
-}
-
-resource "aws_apigatewayv2_route" "shorten" {
-  api_id    = aws_apigatewayv2_api.api.id
-  route_key = "POST /shorten"
-
-  target = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+  env                       = var.env
+  aws_region                = var.aws_region
+  log_bucket_arn            = var.log_bucket_arn
+  lambda_invoke_arn         = aws_lambda_function.shortener.invoke_arn
+  waf_arn                   = module.waf.waf_arn
+  cognito_user_pool_id      = aws_cognito_user_pool.this.id
+  cognito_user_pool_client_id = aws_cognito_user_pool_client.client.id
 }
 
 resource "aws_apigatewayv2_stage" "default" {
