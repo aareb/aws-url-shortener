@@ -9,4 +9,3 @@ resource "aws_ssm_parameter" "base_url" {
   type  = "String"
   value = var.base_url
 }
-``

@@ -33,48 +33,44 @@ resource "aws_apigatewayv2_route" "shorten" {
   target             = "integrations/${aws_apigatewayv2_integration.lambda.id}"
 }
 
-resource "aws_api_gateway_usage_plan" "default" {
-  name = "${var.env}-url-shortener-plan"
+resource "aws_apigatewayv2_route" "redirect" {
+  api_id    = aws_apigatewayv2_api.api.id
+  route_key = "GET /{code}"
 
-  throttle_settings {
-    rate_limit  = 10    # requests per second
-    burst_limit = 20
+  target = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+}
+
+resource "aws_apigatewayv2_stage" "default" {
+  api_id      = aws_apigatewayv2_api.api.id
+  name        = "$default"
+  auto_deploy = true
+
+  access_log_settings {
+    destination_arn = var.log_bucket_arn
+    format = jsonencode({
+      requestId               = "$context.requestId"
+      sourceIp                = "$context.identity.sourceIp"
+      requestTime             = "$context.requestTime"
+      protocol                = "$context.protocol"
+      httpMethod              = "$context.httpMethod"
+      resourcePath            = "$context.resourcePath"
+      routeKey                = "$context.routeKey"
+      status                  = "$context.status"
+      responseLength          = "$context.responseLength"
+      integrationErrorMessage = "$context.integrationErrorMessage"
+    })
   }
-}
-
-resource "aws_api_gateway_usage_plan_key" "default" {
-  key_id        = aws_api_gateway_api_key.default.id
-  key_type      = "API_KEY"
-  usage_plan_id = aws_api_gateway_usage_plan.default.id
-}
-
-resource "aws_api_gateway_api_key" "default" {
-  name = "${var.env}-url-shortener-key"
-  enabled = true
 }
 
 ## WAF association
 resource "aws_wafv2_web_acl_association" "api_waf_assoc" {
-  resource_arn = aws_api_gateway_stage.main.arn
-  log_destination_configs = [var.log_bucket_arn]
-  web_acl_arn  = aws_wafv2_web_acl.api_waf.arn
+  resource_arn = aws_apigatewayv2_stage.default.arn
+  web_acl_arn  = module.waf.waf_arn
 }
 
-resource "aws_api_gateway_method_settings" "throttling" {
-  rest_api_id = aws_api_gateway_rest_api.main.id
-  stage_name  = aws_api_gateway_stage.main.stage_name
-  method_path = "*/*"
-
-  settings {
-    throttling_rate_limit  = 100
-    throttling_burst_limit = 200
-  }
-}
-
-## lamda error alarm
-
+## Lambda error alarm
 resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
-  alarm_name          = "${var.environment}-url-shortener-lambda-errors"
+  alarm_name          = "${var.env}-url-shortener-lambda-errors"
   comparison_operator = "GreaterThanOrEqualToThreshold"
   evaluation_periods  = 1
   metric_name         = "Errors"
@@ -84,26 +80,26 @@ resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
   threshold           = 1
 
   dimensions = {
-    FunctionName = aws_lambda_function.url_shortener.function_name
+    FunctionName = aws_lambda_function.shortener.function_name
   }
 
   alarm_description = "Alert when Lambda function errors occur"
 }
 
-## API Gateway 5XX alarm 
+## API Gateway 5XX alarm
 resource "aws_cloudwatch_metric_alarm" "api_5xx" {
-  alarm_name          = "${var.project_name}-${var.environment}-api-5xx"
+  alarm_name          = "${var.env}-url-shortener-api-5xx"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
-  metric_name         = "5XXError"
+  metric_name         = "5xx"
   namespace           = "AWS/ApiGateway"
   period              = 60
   statistic           = "Sum"
   threshold           = 5
 
   dimensions = {
-    ApiName = aws_api_gateway_rest_api.this.name
-    Stage   = var.environment
+    ApiId = aws_apigatewayv2_api.api.id
+    Stage = aws_apigatewayv2_stage.default.name
   }
 
   alarm_description = "API Gateway 5XX errors detected"

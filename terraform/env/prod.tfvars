@@ -1,14 +1,7 @@
-env         = "prod"
-aws_region  = "us-east-2"
-base_url    = "https://short.example.com"
-
-resource "aws_s3_bucket" "waf_logs" {
-  bucket = "url-shortener-waf-logs-prod"
-}
-
-module "waf" {
-  source = "../../waf"
-
-  name           = "url-shortener-prod"
-  log_bucket_arn = aws_s3_bucket.waf_logs.arn
-}
+env            = "prod"
+aws_region     = "us-east-1"
+base_url       = "https://short.example.com"
+environment    = "prod"
+project_name   = "url-shortener"
+log_bucket_arn = "arn:aws:s3:::url-shortener-waf-logs-prod"
+jwt_secret     = "your-jwt-secret-here"

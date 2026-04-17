@@ -1,5 +1,5 @@
 resource "aws_cloudwatch_log_group" "lambda_logs" {
-  name              = "/aws/lambda/${aws_lambda_function.url_shortener.function_name}"
+  name              = "/aws/lambda/${aws_lambda_function.shortener.function_name}"
   retention_in_days = 14
 
   tags = {
@@ -19,7 +19,7 @@ resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
   threshold           = 1
 
   dimensions = {
-    FunctionName = aws_lambda_function.shorten.function_name
+    FunctionName = aws_lambda_function.shortener.function_name
   }
 
   alarm_description = "Errors detected in URL shortener Lambda"

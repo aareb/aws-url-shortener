@@ -2,6 +2,13 @@ provider "aws" {
   region = var.aws_region
 }
 
+module "waf" {
+  source = "./waf"
+
+  name           = "${var.env}-url-shortener"
+  log_bucket_arn = var.log_bucket_arn
+}
+
 resource "aws_dynamodb_table" "urls" {
   name         = "${var.env}-urls"
   billing_mode = "PAY_PER_REQUEST"
@@ -31,6 +38,7 @@ resource "aws_lambda_function" "shortener" {
   environment {
     variables = {
       TABLE_NAME = aws_dynamodb_table.urls.name
+      BASE_URL   = var.base_url
     }
   }
 }
@@ -42,11 +50,7 @@ resource "aws_lambda_permission" "api_gw" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/*"
 }
-environment {
-  variables = {
-    JWT_SECRET = aws_ssm_parameter.jwt_secret.name
-  }
-}
+
 resource "aws_iam_role_policy" "ssm_access" {
   role = aws_iam_role.lambda_role.id
 

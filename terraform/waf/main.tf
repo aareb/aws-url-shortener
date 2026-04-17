@@ -1,27 +1,26 @@
 variable "name" {
   type = string
-  }
+}
 
-variable "scope" { 
-  type = string
-  default = "REGIONAL" }
+variable "scope" {
+  type    = string
+  default = "REGIONAL"
+}
 
-variable "api_gateway_arn" {}
 variable "log_bucket_arn" {
   type = string
 }
 
 resource "aws_wafv2_web_acl" "api_waf" {
-  name        = "${var.env}-url-shortener-waf"
+  name        = var.name
   description = "WAF for URL shortener"
-  scope       = "REGIONAL"
-
+  scope       = var.scope
 
   default_action {
     allow {}
   }
 
-# Rate Limiting
+  # Rate Limiting
   rule {
     name     = "rate-limit"
     priority = 1
@@ -43,59 +42,10 @@ resource "aws_wafv2_web_acl" "api_waf" {
       sampled_requests_enabled   = true
     }
   }
-    visibility_config {
-    cloudwatch_metrics_enabled = true
-    metric_name                = "url-shortener-waf"
-    sampled_requests_enabled   = true
-  }
-}
-
-#bot control
-rule {
-  name     = "aws-bot-control"
-  priority = 2
-
-  override_action {
-    none {}
-  }
-
-  statement {
-    managed_rule_group_statement {
-      name        = "AWSManagedRulesBotControlRuleSet"
-      vendor_name = "AWS"
-    }
-  }
 
   visibility_config {
     cloudwatch_metrics_enabled = true
-    metric_name                = "bot-control"
-    sampled_requests_enabled   = true
-  }
-}
-# Endpoint-specific rule
-rule {
-  name     = "protect-shortener-path"
-  priority = 3
-
-  action { allow {} }
-
-  statement {
-    byte_match_statement {
-      positional_constraint = "STARTS_WITH"
-      search_string         = "/"
-      field_to_match {
-        uri_path {}
-      }
-      text_transformation {
-        priority = 0
-        type     = "NONE"
-      }
-    }
-  }
-
-  visibility_config {
-    cloudwatch_metrics_enabled = true
-    metric_name                = "path-match"
+    metric_name                = var.name
     sampled_requests_enabled   = true
   }
 }
