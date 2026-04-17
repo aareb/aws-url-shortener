@@ -47,6 +47,6 @@ jobs:
 
       # -------- APPLY --------
     - name: Terraform Apply
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/master'
       run: terraform apply -auto-approve -var-file=env/prod.tfvars
       working-directory: terraform
