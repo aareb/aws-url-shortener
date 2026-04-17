@@ -58,7 +58,7 @@ latency, operational overhead, and cost for a read‑heavy workload.
 | Multiple Environments | dev/prod tfvars |
 | Scaling | Lambda + DynamoDB |
 | Monitoring | CloudWatch Logs (Alarms planned) |
-| Malicious Traffic | WAF + rate limiting (to be added) |
+| Malicious Traffic | WAF + rate limiting  |
 
 ## Features
 - JWT-protected URL creation
