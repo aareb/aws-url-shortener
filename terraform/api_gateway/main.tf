@@ -1,3 +1,9 @@
+variable "env" {}
+variable "aws_region" {}
+variable "log_bucket_arn" {}
+variable "lambda_invoke_arn" {}
+variable "waf_arn" {}
+
 resource "aws_apigatewayv2_api" "api" {
   name          = "${var.env}-url-shortener-api"
   protocol_type = "HTTP"
@@ -21,7 +27,7 @@ resource "aws_apigatewayv2_integration" "lambda" {
   integration_type = "AWS_PROXY"
   connection_type  = "INTERNET"
   integration_method = "POST"
-  integration_uri  = aws_lambda_function.shortener.invoke_arn
+  integration_uri  = var.lambda_invoke_arn
 }
 
 resource "aws_apigatewayv2_route" "shorten" {
@@ -65,7 +71,7 @@ resource "aws_apigatewayv2_stage" "default" {
 ## WAF association
 resource "aws_wafv2_web_acl_association" "api_waf_assoc" {
   resource_arn = aws_apigatewayv2_stage.default.arn
-  web_acl_arn  = module.waf.waf_arn
+  web_acl_arn  = var.waf_arn
 }
 
 ## Lambda error alarm

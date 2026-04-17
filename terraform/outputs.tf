@@ -1,6 +1,6 @@
 output "api_endpoint" {
   description = "Base URL of the API Gateway"
-  value       = aws_apigatewayv2_api.api.api_endpoint
+  value       = aws_apigatewayv2_stage.default.invoke_url
 }
 
 output "dynamodb_table_name" {

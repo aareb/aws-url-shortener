@@ -1,5 +1,5 @@
 env            = "prod"
-aws_region     = "us-east-1"
+aws_region     = "eu-west-2"
 base_url       = "https://short.example.com"
 environment    = "prod"
 project_name   = "url-shortener"
